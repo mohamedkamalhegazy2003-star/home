@@ -252,9 +252,23 @@ class WakeService : Service(), RecognitionListener, TextToSpeech.OnInitListener 
 
     private fun act(d: Decision, heard: String) {
         val ar = if (heard.any { it.isLetter() }) Text.hasArabic(heard) else Prefs.lang(this) == "ar"
-        Bridge.log("🤖 ${d.reply}" + if (d.action != "none") "  [${d.action}]" else "")
+        if (d.action == "status") {
+            val msg = statusMessage(d.targets, ar)
+            Bridge.log("ℹ️ $msg")
+            speak(msg) { finishCycle() }
+            return
+        }
+
+        Bridge.log("🤖 ${d.reply}" + if (d.action != "none") "  [${d.action} ${d.targets.joinToString(",")}]" else "")
 
         if (d.action == "none") {
+            speak(d.reply) { finishCycle() }
+            return
+        }
+
+        if (d.delayMinutes > 0) {
+            Bridge.log("⏱ ${d.action} +${d.delayMinutes}m")
+            main.postDelayed({ runScheduled(d, ar, 0) }, d.delayMinutes * 60_000L)
             speak(d.reply) { finishCycle() }
             return
         }
@@ -268,7 +282,7 @@ class WakeService : Service(), RecognitionListener, TextToSpeech.OnInitListener 
             return
         }
         val token = cycleToken
-        svc.run(d.action, ar) { ok, msg ->
+        svc.run(d.action, d.targets, ar) { ok, msg ->
             main.post {
                 if (alive && token == cycleToken) {
                     Bridge.log((if (ok) "✅ " else "⚠️ ") + msg)
@@ -276,6 +290,42 @@ class WakeService : Service(), RecognitionListener, TextToSpeech.OnInitListener 
                 }
             }
         }
+    }
+
+    /** Runs a delayed command ("اطفي الفيشة بعد 10 دقايق"). Timers live as long as the service does. */
+    private fun runScheduled(d: Decision, ar: Boolean, tries: Int) {
+        if (!alive) return
+        val svc = PlugAccessibilityService.instance
+        if (svc == null) {
+            Bridge.log("⚠️ " + Msgs.noA11y(ar))
+            return
+        }
+        if (svc.isBusy && tries < 15) {
+            main.postDelayed({ runScheduled(d, ar, tries + 1) }, 8000)
+            return
+        }
+        svc.run(d.action, d.targets, ar) { ok, msg ->
+            main.post {
+                Bridge.log((if (ok) "✅ " else "⚠️ ") + msg)
+                speak(msg, null)
+            }
+        }
+    }
+
+    private fun statusMessage(targets: List<String>, ar: Boolean): String {
+        val list = if (targets.isNotEmpty()) targets else Prefs.plugs(this)
+        if (list.isEmpty()) {
+            return if (ar) "لسه ما عرفتش أسماء الفيش" else "I don't know your plugs yet."
+        }
+        val body = list.joinToString(if (ar) "، " else ", ") { name ->
+            val st = when (Prefs.plugState(this, name)) {
+                "on" -> if (ar) "شغالة" else "on"
+                "off" -> if (ar) "مطفية" else "off"
+                else -> if (ar) "مش معروفة" else "unknown"
+            }
+            "$name: $st"
+        }
+        return body + if (ar) " (حسب آخر أمر نفذته)" else " (as of my last command)"
     }
 
     private fun finishCycle() {

@@ -43,6 +43,10 @@ object Msgs {
         if (ar) "ضغطت على زر الطاقة"
         else "I tapped the power button."
 
+    fun many(ar: Boolean, on: Boolean, ok: Int, total: Int) =
+        if (ar) "تم ${if (on) "تشغيل" else "إطفاء"} $ok من $total"
+        else "Turned ${if (on) "on" else "off"} $ok of $total plugs."
+
     fun didntHear(ar: Boolean) =
         if (ar) "ما سمعتش أمر" else "I didn't hear a command."
 }

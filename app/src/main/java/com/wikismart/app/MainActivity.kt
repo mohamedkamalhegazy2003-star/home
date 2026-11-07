@@ -35,6 +35,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etDevice: EditText
     private lateinit var etKey: EditText
     private lateinit var etModel: EditText
+    private lateinit var etNewPlug: EditText
+    private lateinit var plugsBox: LinearLayout
     private lateinit var rbAr: RadioButton
     private lateinit var rbEn: RadioButton
 
@@ -68,15 +70,27 @@ class MainActivity : AppCompatActivity() {
         return tv
     }
 
-    private fun button(parent: LinearLayout, text: String, onClick: () -> Unit): MaterialButton {
-        val b = MaterialButton(this).apply {
+    private fun makeButton(text: String, onClick: () -> Unit): MaterialButton =
+        MaterialButton(this).apply {
             this.text = text
             isAllCaps = false
             setOnClickListener { onClick() }
         }
+
+    private fun button(parent: LinearLayout, text: String, onClick: () -> Unit): MaterialButton {
+        val b = makeButton(text, onClick)
         add(parent, b)
         return b
     }
+
+    private fun smallButton(text: String, onClick: () -> Unit): MaterialButton =
+        makeButton(text, onClick).apply {
+            minimumWidth = 0
+            minWidth = 0
+            setPadding(dp(10), 0, dp(10), 0)
+            insetTop = 0
+            insetBottom = 0
+        }
 
     private fun edit(parent: LinearLayout, hint: String, secret: Boolean = false): EditText {
         val e = EditText(this).apply {
@@ -143,18 +157,40 @@ class MainActivity : AppCompatActivity() {
         tvApp = TextView(this).apply { textSize = 15f }
         add(root, tvApp)
         button(root, getString(R.string.btn_pick)) { pickApp() }
+
+        // 3) plugs
+        section(root, getString(R.string.sec_plugs))
+        note(root, getString(R.string.plugs_note))
+        button(root, getString(R.string.btn_scan)) { scan() }
+        plugsBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        add(root, plugsBox, 10)
+        etNewPlug = edit(root, getString(R.string.hint_new_plug))
+        button(root, getString(R.string.btn_add_plug)) { addManualPlug() }
+        val allRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        allRow.addView(
+            makeButton(getString(R.string.btn_all_on)) { runPlugs("on", Prefs.plugs(this)) },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        )
+        allRow.addView(
+            makeButton(getString(R.string.btn_all_off)) { runPlugs("off", Prefs.plugs(this)) },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        )
+        add(root, allRow, 10)
         etDevice = edit(root, getString(R.string.hint_device))
         etDevice.setText(Prefs.deviceName(this))
+        button(root, getString(R.string.btn_test_on)) { runPlugs("on", emptyList()) }
+        button(root, getString(R.string.btn_test_off)) { runPlugs("off", emptyList()) }
 
-        // 3) AI
+        // 4) AI
         section(root, getString(R.string.sec_ai))
+        note(root, getString(R.string.ai_builtin))
         etKey = edit(root, getString(R.string.hint_key), secret = true)
         etKey.setText(Prefs.apiKey(this))
         etModel = edit(root, getString(R.string.hint_model))
         etModel.setText(Prefs.model(this))
         note(root, getString(R.string.ai_note))
 
-        // 4) language
+        // 5) language
         section(root, getString(R.string.sec_lang))
         val group = RadioGroup(this).apply { orientation = RadioGroup.HORIZONTAL }
         rbAr = RadioButton(this).apply {
@@ -170,11 +206,10 @@ class MainActivity : AppCompatActivity() {
         add(root, group)
         if (Prefs.lang(this) == "en") rbEn.isChecked = true else rbAr.isChecked = true
 
-        // 5) run
+        // 6) run
         section(root, getString(R.string.sec_run))
         btnListen = button(root, getString(R.string.btn_start)) { toggleListening() }
-        button(root, getString(R.string.btn_test_on)) { test("on") }
-        button(root, getString(R.string.btn_test_off)) { test("off") }
+        note(root, getString(R.string.examples))
 
         // log
         section(root, getString(R.string.sec_log))
@@ -191,6 +226,11 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         Bridge.listener = { refresh() }
         refresh()
+        val scan = Bridge.pendingScan
+        if (scan != null) {
+            Bridge.pendingScan = null
+            showScanDialog(scan)
+        }
     }
 
     override fun onPause() {
@@ -213,6 +253,48 @@ class MainActivity : AppCompatActivity() {
 
         btnListen.text = getString(if (Bridge.running) R.string.btn_stop else R.string.btn_start)
         tvLog.text = Bridge.snapshot()
+        rebuildPlugs()
+    }
+
+    private fun rebuildPlugs() {
+        plugsBox.removeAllViews()
+        val plugs = Prefs.plugs(this)
+        if (plugs.isEmpty()) {
+            plugsBox.addView(TextView(this).apply {
+                text = getString(R.string.plugs_none)
+                textSize = 14f
+            })
+            return
+        }
+        for (name in plugs) {
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            val icon = when (Prefs.plugState(this, name)) {
+                "on" -> "🟢"
+                "off" -> "⚪"
+                else -> "❔"
+            }
+            row.addView(
+                TextView(this).apply {
+                    text = "$icon  $name"
+                    textSize = 15f
+                },
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            )
+            row.addView(smallButton(getString(R.string.plug_on)) { runPlugs("on", listOf(name)) })
+            row.addView(smallButton(getString(R.string.plug_off)) { runPlugs("off", listOf(name)) })
+            row.addView(smallButton("✕") {
+                Prefs.setPlugs(this, Prefs.plugs(this).filter { it != name })
+                refresh()
+            })
+            plugsBox.addView(
+                row,
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                    .apply { topMargin = dp(4) }
+            )
+        }
     }
 
     private fun saveSettings() {
@@ -260,6 +342,82 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    // ------------------------------------------------------------------ plugs
+
+    /** Opens the plug app, reads the device list and (when done) shows what it found. */
+    private fun scan() {
+        saveSettings()
+        if (Prefs.targetPackage(this).isEmpty()) {
+            toast(R.string.toast_pick_app)
+            return
+        }
+        val svc = PlugAccessibilityService.instance
+        if (svc == null) {
+            toast(R.string.toast_enable_a11y)
+            return
+        }
+        if (svc.isBusy) {
+            toast(R.string.toast_busy)
+            return
+        }
+        Bridge.log("🔎 " + getString(R.string.scan_started))
+        toast(R.string.scan_started)
+        svc.scanPlugs { names ->
+            Bridge.log("🔎 " + names.size)
+        }
+    }
+
+    private fun showScanDialog(names: List<String>) {
+        if (names.isEmpty()) {
+            toast(R.string.scan_none)
+            return
+        }
+        val arr = names.toTypedArray()
+        val checked = BooleanArray(arr.size) { true }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.scan_result_title)
+            .setMultiChoiceItems(arr, checked) { _, which, isChecked -> checked[which] = isChecked }
+            .setPositiveButton(R.string.save) { _, _ ->
+                val chosen = arr.filterIndexed { i, _ -> checked[i] }
+                val merged = (Prefs.plugs(this) + chosen).distinctBy { Text.norm(it) }
+                Prefs.setPlugs(this, merged)
+                refresh()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun addManualPlug() {
+        val name = etNewPlug.text.toString().trim()
+        if (name.isEmpty()) return
+        val merged = (Prefs.plugs(this) + name).distinctBy { Text.norm(it) }
+        Prefs.setPlugs(this, merged)
+        etNewPlug.setText("")
+        refresh()
+    }
+
+    /** Runs on/off for the given plugs (empty = the default plug / device name). */
+    private fun runPlugs(action: String, targets: List<String>) {
+        saveSettings()
+        if (Prefs.targetPackage(this).isEmpty()) {
+            toast(R.string.toast_pick_app)
+            return
+        }
+        val svc = PlugAccessibilityService.instance
+        if (svc == null) {
+            toast(R.string.toast_enable_a11y)
+            return
+        }
+        if (svc.isBusy) {
+            toast(R.string.toast_busy)
+            return
+        }
+        Bridge.log("🧪 $action ${targets.joinToString(",")}")
+        svc.run(action, targets, Prefs.lang(this) == "ar") { ok, msg ->
+            Bridge.log((if (ok) "✅ " else "⚠️ ") + msg)
+        }
+    }
+
     private fun toggleListening() {
         saveSettings()
         if (Bridge.running) {
@@ -277,22 +435,5 @@ class MainActivity : AppCompatActivity() {
             return
         }
         ContextCompat.startForegroundService(this, Intent(this, WakeService::class.java))
-    }
-
-    private fun test(action: String) {
-        saveSettings()
-        if (Prefs.targetPackage(this).isEmpty()) {
-            toast(R.string.toast_pick_app)
-            return
-        }
-        val svc = PlugAccessibilityService.instance
-        if (svc == null) {
-            toast(R.string.toast_enable_a11y)
-            return
-        }
-        Bridge.log("🧪 test: $action")
-        svc.run(action, Prefs.lang(this) == "ar") { ok, msg ->
-            Bridge.log((if (ok) "✅ " else "⚠️ ") + msg)
-        }
     }
 }

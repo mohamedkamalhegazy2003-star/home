@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Wikismart</string>
-    <string name="subtitle">Smart voice assistant for your smart plug. Say “Wiki”, then your command (turn on / turn off).</string>
+    <string name="subtitle">Smart voice assistant for your smart plugs. Say “Wiki”, then your command.</string>
 
     <string name="sec_perms">1) Permissions</string>
     <string name="btn_perms">Allow microphone &amp; notifications</string>
@@ -15,22 +15,40 @@
     <string name="btn_pick">Choose the plug app</string>
     <string name="app_none">No app selected</string>
     <string name="app_selected">Selected app: %1$s</string>
-    <string name="hint_device">Plug name inside the app (optional)</string>
 
-    <string name="sec_ai">3) AI (optional)</string>
-    <string name="hint_key">Claude API key</string>
+    <string name="sec_plugs">3) Plugs</string>
+    <string name="plugs_note">Tap “Scan”: the app opens the plug app and reads the names of all your plugs, then you confirm them. You can also add names by hand.</string>
+    <string name="btn_scan">🔎 Scan the app and learn the plug names</string>
+    <string name="plugs_none">No plugs saved yet.</string>
+    <string name="hint_new_plug">Add a plug name by hand</string>
+    <string name="btn_add_plug">Add name</string>
+    <string name="btn_all_on">Turn all on</string>
+    <string name="btn_all_off">Turn all off</string>
+    <string name="plug_on">On</string>
+    <string name="plug_off">Off</string>
+    <string name="hint_device">Plug name (if you skip the scan) — optional</string>
+    <string name="btn_test_on">Test: turn the default plug on</string>
+    <string name="btn_test_off">Test: turn the default plug off</string>
+    <string name="scan_started">Opening the app and reading the plugs… wait until you are back here</string>
+    <string name="scan_none">No names found. Add them by hand, or try again with the app on its devices screen.</string>
+    <string name="scan_result_title">Plug names found — untick anything that is not a plug</string>
+    <string name="save">Save</string>
+    <string name="toast_busy">Something is still running, wait until it finishes</string>
+
+    <string name="sec_ai">4) Artificial intelligence</string>
+    <string name="ai_builtin">The built-in smart engine is always ready, even offline: it understands Arabic and English, plug names (even when pronounced imperfectly), “all plugs”, timers (in 10 minutes) and plug status.</string>
+    <string name="hint_key">Claude API key (optional)</string>
     <string name="hint_model">Model name</string>
-    <string name="ai_note">Without a key the app understands simple commands (turn on / turn off) locally. With a key it understands free speech and answers you.</string>
+    <string name="ai_note">With a key, a Claude model takes over: it understands free speech, remembers the last turns and answers any question.</string>
 
-    <string name="sec_lang">4) Voice language</string>
+    <string name="sec_lang">5) Voice language</string>
     <string name="lang_ar">العربية</string>
     <string name="lang_en">English</string>
 
-    <string name="sec_run">5) Run</string>
+    <string name="sec_run">6) Run</string>
     <string name="btn_start">Start listening for “Wiki”</string>
     <string name="btn_stop">Stop listening</string>
-    <string name="btn_test_on">Test: turn the plug on</string>
-    <string name="btn_test_off">Test: turn the plug off</string>
+    <string name="examples">Examples: “Wiki turn on the kitchen plug” • “Wiki turn off all plugs” • “Wiki turn off the washer in 10 minutes” • “Wiki is the iron on?”. Timers work as long as listening is running.</string>
 
     <string name="sec_log">Log</string>
     <string name="toast_pick_app">Choose the plug app first</string>
@@ -39,5 +57,5 @@
     <string name="channel_name">Wikismart</string>
     <string name="notif_title">Wikismart is running</string>
     <string name="notif_text">Say “Wiki”, then your command</string>
-    <string name="a11y_description">Lets Wikismart open your smart plug app and press its on/off control based on your voice commands.</string>
+    <string name="a11y_description">Lets Wikismart open your smart plug app, read the device names and press the on/off control based on your voice commands.</string>
 </resources>

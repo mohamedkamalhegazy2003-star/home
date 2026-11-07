@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Wikismart</string>
-    <string name="subtitle">مساعد صوتي ذكي للتحكم في الفيشة الذكية. قُل «ويكي» ثم الأمر (شغل / اطفي).</string>
+    <string name="subtitle">مساعد صوتي ذكي للتحكم في الفيش الذكية. قُل «ويكي» ثم الأمر.</string>
 
     <string name="sec_perms">١) الأذونات</string>
     <string name="btn_perms">السماح بالميكروفون والإشعارات</string>
@@ -11,33 +11,51 @@
     <string name="restricted_hint">لو تفعيل خدمة إمكانية الوصول رمادي: افتح معلومات التطبيق ← ⋮ ← «السماح بالإعدادات المقيدة» ثم ارجع فعّلها.</string>
     <string name="perm_status">الميكروفون: %1$s\nخدمة إمكانية الوصول: %2$s\nالظهور فوق التطبيقات: %3$s</string>
 
-    <string name="sec_app">٢) تطبيق الفيشة</string>
-    <string name="btn_pick">اختيار تطبيق الفيشة</string>
+    <string name="sec_app">٢) تطبيق الفيش</string>
+    <string name="btn_pick">اختيار تطبيق الفيش</string>
     <string name="app_none">لم يتم اختيار تطبيق</string>
     <string name="app_selected">التطبيق المختار: %1$s</string>
-    <string name="hint_device">اسم الفيشة داخل التطبيق (اختياري)</string>
 
-    <string name="sec_ai">٣) الذكاء الاصطناعي (اختياري)</string>
-    <string name="hint_key">مفتاح Claude API</string>
+    <string name="sec_plugs">٣) الفيش</string>
+    <string name="plugs_note">اضغط «فحص» وسيفتح التطبيق ويقرأ أسماء كل الفيش، وبعدها تأكد منها. تقدر كمان تضيف الأسماء بإيدك.</string>
+    <string name="btn_scan">🔎 فحص التطبيق ومعرفة أسماء الفيش</string>
+    <string name="plugs_none">لسه مفيش فيش محفوظة.</string>
+    <string name="hint_new_plug">إضافة اسم فيشة بإيدك</string>
+    <string name="btn_add_plug">إضافة الاسم</string>
+    <string name="btn_all_on">شغّل الكل</string>
+    <string name="btn_all_off">اطفي الكل</string>
+    <string name="plug_on">تشغيل</string>
+    <string name="plug_off">إطفاء</string>
+    <string name="hint_device">اسم الفيشة (لو مش هتعمل فحص) — اختياري</string>
+    <string name="btn_test_on">تجربة: تشغيل الفيشة الافتراضية</string>
+    <string name="btn_test_off">تجربة: إطفاء الفيشة الافتراضية</string>
+    <string name="scan_started">جاري فتح التطبيق وقراءة الفيش… استنى لحد ما ترجع لهنا</string>
+    <string name="scan_none">ما لقيتش أسماء. أضفها بإيدك أو جرّب تفتح التطبيق على شاشة الأجهزة.</string>
+    <string name="scan_result_title">أسماء الفيش اللي لقيتها — شيل علامة اللي مش فيشة</string>
+    <string name="save">حفظ</string>
+    <string name="toast_busy">في عملية شغالة، استنى لحد ما تخلص</string>
+
+    <string name="sec_ai">٤) الذكاء الاصطناعي</string>
+    <string name="ai_builtin">المحرك الذكي المدمج جاهز دايمًا وبدون إنترنت: بيفهم العربي والإنجليزي، أسماء الفيش (حتى لو النطق مش مظبوط)، «كل الفيش»، المؤقتات (بعد ١٠ دقايق)، وحالة الفيشة.</string>
+    <string name="hint_key">مفتاح Claude API (اختياري)</string>
     <string name="hint_model">اسم النموذج</string>
-    <string name="ai_note">بدون مفتاح التطبيق بيفهم الأوامر البسيطة (شغل / اطفي) محليًا. مع المفتاح بيفهم الكلام بحرية ويرد عليك.</string>
+    <string name="ai_note">مع المفتاح بيشتغل نموذج Claude: بيفهم كلامك بحرية، بيفتكر آخر كلامكم، وبيرد على أي سؤال.</string>
 
-    <string name="sec_lang">٤) لغة الصوت</string>
+    <string name="sec_lang">٥) لغة الصوت</string>
     <string name="lang_ar">العربية</string>
     <string name="lang_en">English</string>
 
-    <string name="sec_run">٥) التشغيل</string>
+    <string name="sec_run">٦) التشغيل</string>
     <string name="btn_start">ابدأ الاستماع لكلمة «ويكي»</string>
     <string name="btn_stop">إيقاف الاستماع</string>
-    <string name="btn_test_on">تجربة: تشغيل الفيشة</string>
-    <string name="btn_test_off">تجربة: إطفاء الفيشة</string>
+    <string name="examples">أمثلة: «ويكي شغل فيشة المطبخ» • «ويكي اطفي كل الفيش» • «ويكي اطفي الغسالة بعد ١٠ دقايق» • «ويكي المكواة شغالة؟». المؤقتات بتشتغل طول ما الاستماع شغال.</string>
 
     <string name="sec_log">السجل</string>
-    <string name="toast_pick_app">اختر تطبيق الفيشة الأول</string>
+    <string name="toast_pick_app">اختر تطبيق الفيش الأول</string>
     <string name="toast_enable_a11y">فعّل خدمة Wikismart من إعدادات إمكانية الوصول الأول</string>
 
     <string name="channel_name">Wikismart</string>
     <string name="notif_title">Wikismart شغال</string>
     <string name="notif_text">قُل «ويكي» ثم الأمر</string>
-    <string name="a11y_description">تسمح لـ Wikismart بفتح تطبيق الفيشة الذكية والضغط على زر التشغيل أو الإطفاء بناءً على أوامرك الصوتية.</string>
+    <string name="a11y_description">تسمح لـ Wikismart بفتح تطبيق الفيش الذكية وقراءة أسماء الأجهزة والضغط على زر التشغيل أو الإطفاء بناءً على أوامرك الصوتية.</string>
 </resources>

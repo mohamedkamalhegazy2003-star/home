@@ -14,6 +14,10 @@ object Bridge {
     @Volatile
     var listener: (() -> Unit)? = null
 
+    /** Plug names found by the last scan, waiting for the user to confirm them. */
+    @Volatile
+    var pendingScan: List<String>? = null
+
     private val lines = ArrayList<String>()
     private val main = Handler(Looper.getMainLooper())
     private val fmt = SimpleDateFormat("HH:mm:ss", Locale.US)

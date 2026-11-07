@@ -11,9 +11,11 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 
 /**
- * Opens the plug's own app and presses its on/off control.
- * Looks for a real switch first, then for buttons labelled On/Off (Arabic or English),
- * and finally for a generic "power" button.
+ * Works inside the plug's own app:
+ *  - [scanPlugs] reads the device list and learns the plug names,
+ *  - [run] opens the app, picks each requested plug by name and presses its on/off control.
+ * For the control it looks for a real switch first, then for buttons labelled On/Off
+ * (Arabic or English), and finally for a generic "power" button.
  */
 class PlugAccessibilityService : AccessibilityService() {
 
@@ -31,12 +33,31 @@ class PlugAccessibilityService : AccessibilityService() {
     private var callback: ((Boolean, String) -> Unit)? = null
     private var startedAt = 0L
     private var deviceClicked = true
+    private var goHome = true
     private var token = 0
+
+    @Volatile
+    private var scanning = false
+
+    val isBusy: Boolean
+        get() = callback != null || scanning
 
     // Labels are already normalized (see Text.norm).
     private val onLabels = listOf("turn on", "power on", "switch on", "تشغيل", "شغل", "فتح")
     private val offLabels = listOf("turn off", "power off", "switch off", "ايقاف", "اطفاء", "اطفي", "اغلاق", "قفل")
     private val genericLabels = listOf("power", "toggle", "switch", "طاقه", "الطاقه")
+
+    // Words that are part of an app's chrome, not plug names (normalized).
+    private val stopWords = setOf(
+        "home", "الرئيسيه", "settings", "الاعدادات", "اعدادات", "add", "add device", "اضافه", "اضافه جهاز",
+        "devices", "device", "اجهزه", "الاجهزه", "جهاز", "menu", "more", "المزيد", "profile", "الملف الشخصي",
+        "notifications", "notification", "الاشعارات", "اشعارات", "on", "off", "تشغيل", "ايقاف", "connected",
+        "متصل", "غير متصل", "offline", "online", "back", "cancel", "ok", "done", "search", "بحث", "scenes",
+        "automation", "discover", "explore", "login", "sign in", "help", "مساعده", "support", "account",
+        "حسابي", "my home", "منزلي", "all", "الكل", "favorites", "المفضله", "rooms", "الغرف", "navigate up",
+        "open navigation drawer", "more options", "close", "اغلاق", "التالي", "next", "skip", "تخطي", "edit", "تعديل",
+        "save", "حفظ", "yes", "no", "نعم", "لا", "loading", "جاري التحميل", "smart", "thinq", "lg thinq"
+    )
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -58,14 +79,167 @@ class PlugAccessibilityService : AccessibilityService() {
         super.onDestroy()
     }
 
-    /** Runs on the main thread. The callback is called once with (success, message). */
-    fun run(action: String, arabic: Boolean, cb: (Boolean, String) -> Unit) {
+    // ------------------------------------------------------------------ scan
+
+    /**
+     * Opens the plug app, scrolls through its device list and reports the names it found.
+     * The result is also stored in [Bridge.pendingScan] and the main screen is brought back.
+     */
+    fun scanPlugs(cb: (List<String>) -> Unit) {
         val c = applicationContext
         pkg = Prefs.targetPackage(c)
-        device = Text.norm(Prefs.deviceName(c))
-        wantOn = action == "on"
+        val t = ++token
+        callback = null
+        scanning = true
+
+        val launch = if (pkg.isEmpty()) null else packageManager.getLaunchIntentForPackage(pkg)
+        if (launch == null) {
+            scanning = false
+            cb(emptyList())
+            return
+        }
+        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        try {
+            startActivity(launch)
+        } catch (e: Exception) {
+            scanning = false
+            cb(emptyList())
+            return
+        }
+
+        val found = LinkedHashMap<String, String>()
+        val started = System.currentTimeMillis()
+        var idle = 0
+        var rounds = 0
+
+        fun done() {
+            scanning = false
+            if (t != token) return
+            val result = found.values.toList()
+            Bridge.pendingScan = result
+            cb(result)
+            try {
+                startActivity(
+                    Intent(this, MainActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                )
+            } catch (e: Exception) {
+                performGlobalAction(GLOBAL_ACTION_HOME)
+            }
+        }
+
+        fun round() {
+            if (t != token) {
+                scanning = false
+                return
+            }
+            if (System.currentTimeMillis() - started > 60000) {
+                done()
+                return
+            }
+            val root = rootInActiveWindow
+            if (root == null || root.packageName?.toString() != pkg) {
+                main.postDelayed({ round() }, 1000)
+                return
+            }
+            val before = found.size
+            collectNames(root, found, true)
+            if (found.size > before) idle = 0 else idle++
+            rounds++
+            if (idle >= 2 || rounds >= 10) {
+                if (found.isEmpty()) collectNames(root, found, false)
+                done()
+                return
+            }
+            val scroller = findScrollable(root)
+            if (scroller != null) scroller.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+            main.postDelayed({ round() }, 1500)
+        }
+
+        main.postDelayed({ round() }, 4000)
+    }
+
+    private fun collectNames(root: AccessibilityNodeInfo, out: MutableMap<String, String>, strict: Boolean) {
+        walk(root, 0) { n ->
+            if (n.isVisibleToUser) {
+                for (raw in listOfNotNull(n.text, n.contentDescription)) {
+                    val s = raw.toString().trim()
+                    val k = Text.norm(s)
+                    if (s.length in 2..40 && k.any { it.isLetter() } && k !in stopWords &&
+                        !out.containsKey(k) && (!strict || inClickable(n))
+                    ) {
+                        out[k] = s
+                    }
+                }
+            }
+        }
+    }
+
+    private fun inClickable(n: AccessibilityNodeInfo): Boolean {
+        var cur: AccessibilityNodeInfo? = n
+        var d = 0
+        while (cur != null && d < 6) {
+            if (cur.isClickable) return true
+            cur = cur.parent
+            d++
+        }
+        return false
+    }
+
+    private fun findScrollable(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        var res: AccessibilityNodeInfo? = null
+        walk(root, 0) { n ->
+            if (res == null && n.isScrollable && n.isVisibleToUser) res = n
+        }
+        return res
+    }
+
+    // ------------------------------------------------------------------ run
+
+    /**
+     * Turns the given plugs on/off (empty list = the single default plug / device name from settings).
+     * Runs on the main thread. The callback is called once with (success, message).
+     */
+    fun run(action: String, targets: List<String>, arabic: Boolean, cb: (Boolean, String) -> Unit) {
+        val c = applicationContext
+        val list = if (targets.isNotEmpty()) targets else listOf(Prefs.deviceName(c))
+        val on = action == "on"
+        var okCount = 0
+
+        fun step(i: Int) {
+            val name = list[i]
+            val last = i == list.size - 1
+            runOne(name, on, arabic, last) { ok, msg ->
+                if (ok) {
+                    okCount++
+                    Prefs.setPlugState(c, name, action)
+                }
+                if (list.size > 1) Bridge.log((if (ok) "✅ " else "⚠️ ") + name + ": " + msg)
+                when {
+                    list.size == 1 -> cb(ok, msg)
+                    last -> cb(okCount == list.size, Msgs.many(arabic, on, okCount, list.size))
+                    else -> step(i + 1)
+                }
+            }
+        }
+        step(0)
+    }
+
+    private fun runOne(
+        name: String,
+        on: Boolean,
+        arabic: Boolean,
+        goHomeAfter: Boolean,
+        cb: (Boolean, String) -> Unit
+    ) {
+        val c = applicationContext
+        pkg = Prefs.targetPackage(c)
+        device = Text.norm(name)
+        wantOn = on
         ar = arabic
         callback = cb
+        goHome = goHomeAfter
+        scanning = false
         deviceClicked = device.isEmpty()
         startedAt = System.currentTimeMillis()
         val t = ++token
@@ -90,7 +264,7 @@ class PlugAccessibilityService : AccessibilityService() {
         val cb = callback ?: return
         callback = null
         cb(ok, msg)
-        if (ok) {
+        if (ok && goHome) {
             main.postDelayed({ performGlobalAction(GLOBAL_ACTION_HOME) }, 1500)
         }
     }
@@ -116,10 +290,13 @@ class PlugAccessibilityService : AccessibilityService() {
                 return
             }
             if (elapsed < 15000) {
-                main.postDelayed({ tick(t) }, 800)
+                // the plug may be further down the list
+                val scroller = findScrollable(root)
+                if (scroller != null && elapsed > 4000) scroller.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+                main.postDelayed({ tick(t) }, 900)
                 return
             }
-            deviceClicked = true // couldn't find the device name; try the controls anyway
+            deviceClicked = true // couldn't find the plug name; try the controls anyway
         }
 
         if (tryControl(root, t, elapsed)) return
