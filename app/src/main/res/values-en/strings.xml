@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Wikismart</string>
+    <string name="subtitle">Smart voice assistant for your smart plug. Say “Wiki”, then your command (turn on / turn off).</string>
+
+    <string name="sec_perms">1) Permissions</string>
+    <string name="btn_perms">Allow microphone &amp; notifications</string>
+    <string name="btn_a11y">Enable the Wikismart service (Accessibility)</string>
+    <string name="btn_overlay">Allow display over other apps</string>
+    <string name="btn_appinfo">App info (restricted settings)</string>
+    <string name="restricted_hint">If enabling the accessibility service is greyed out: open App info → ⋮ → “Allow restricted settings”, then come back and enable it.</string>
+    <string name="perm_status">Microphone: %1$s\nAccessibility service: %2$s\nDisplay over other apps: %3$s</string>
+
+    <string name="sec_app">2) Plug app</string>
+    <string name="btn_pick">Choose the plug app</string>
+    <string name="app_none">No app selected</string>
+    <string name="app_selected">Selected app: %1$s</string>
+    <string name="hint_device">Plug name inside the app (optional)</string>
+
+    <string name="sec_ai">3) AI (optional)</string>
+    <string name="hint_key">Claude API key</string>
+    <string name="hint_model">Model name</string>
+    <string name="ai_note">Without a key the app understands simple commands (turn on / turn off) locally. With a key it understands free speech and answers you.</string>
+
+    <string name="sec_lang">4) Voice language</string>
+    <string name="lang_ar">العربية</string>
+    <string name="lang_en">English</string>
+
+    <string name="sec_run">5) Run</string>
+    <string name="btn_start">Start listening for “Wiki”</string>
+    <string name="btn_stop">Stop listening</string>
+    <string name="btn_test_on">Test: turn the plug on</string>
+    <string name="btn_test_off">Test: turn the plug off</string>
+
+    <string name="sec_log">Log</string>
+    <string name="toast_pick_app">Choose the plug app first</string>
+    <string name="toast_enable_a11y">Enable the Wikismart accessibility service first</string>
+
+    <string name="channel_name">Wikismart</string>
+    <string name="notif_title">Wikismart is running</string>
+    <string name="notif_text">Say “Wiki”, then your command</string>
+    <string name="a11y_description">Lets Wikismart open your smart plug app and press its on/off control based on your voice commands.</string>
+</resources>
